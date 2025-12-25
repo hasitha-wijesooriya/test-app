@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { signupUser, clearStatus } from './features/auth/authSlice';
+import { useSignupMutation } from "./features/apiSlice";
 
 function Signup() {
 
     const navigate = useNavigate();
-    const dispatch = useDispatch();
 
-    const { loading, error, success } = useSelector(
-        (state) => state.auth
-    );
+    const [signup, { isLoading, isSuccess, error }] = useSignupMutation();
 
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         password: ""
     });
-
-    const [message, setMessage] = useState("");
 
     // input change handler
     const handleChange = (e) => {
@@ -32,15 +26,19 @@ function Signup() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        dispatch(signupUser(formData));
+        try {
+            await signup(formData).unwrap();
+        } catch (err) {
+            console.log(err);
+        }
+
     };
 
     useEffect(() => {
-        if (success) {
-            navigate('/login');
-            dispatch(clearStatus());
+        if (isSuccess) {
+            navigate("/login");
         }
-    }, [success, navigate, dispatch]);
+    }, [isSuccess, navigate]);
 
     return (
         <div style={styles.container}>
@@ -77,13 +75,16 @@ function Signup() {
                     required
                 />
 
-                <button type="submit" disabled={loading} style={styles.btn}>{loading ? 'Signing up...' : 'Signup'}</button>
+                <button type="submit" disabled={isLoading} style={styles.btn}>{isLoading ? 'Signing up...' : 'Signup'}</button>
 
                 <button type="button" onClick={() => navigate('/login')} style={styles.lbtn}>Already have an Account? Login </button>
             </form>
 
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {success && <p style={{ color: 'green' }}>{success}</p>}
+            {error && (
+                <p style={{ color: "red" }}>
+                    {error.data?.message || "Signup failed"}
+                </p>
+            )}
 
         </div>
     );

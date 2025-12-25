@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
 import { useNavigate } from "react-router-dom";
-import { loginUser,clearStatus } from "./features/auth/authSlice";
+import { useLoginMutation } from "./features/apiSlice";
+
 
 function Signup() {
 
     const navigate = useNavigate();
-    const dispatch = useDispatch();
 
-    const { loading, error, success, token } = useSelector(
-        (state) => state.auth
-    );
+    const [login, { isLoading, isSuccess, error, data }] = useLoginMutation();
 
     const [formData, setFormData] = useState({
         email: "",
@@ -31,15 +27,19 @@ function Signup() {
     // form submit handler
     const handleSubmit = async (e) => {
         e.preventDefault();
-        dispatch(loginUser(formData));
+        try {
+            const res = await login(formData).unwrap();
+            localStorage.setItem("token", res.token);
+        } catch (err) {
+            console.log(err);
+        }
     };
 
     useEffect(() => {
-        if (token) {
-            navigate('/home');
-            dispatch(clearStatus());
+        if (isSuccess && data?.token) {
+            navigate("/home");
         }
-    }, [token, navigate, dispatch]);
+    }, [isSuccess, data, navigate]);
 
     return (
         <div style={styles.container}>
@@ -67,14 +67,17 @@ function Signup() {
                     required
                 />
 
-                <button type="submit" disabled={loading} style={styles.btn}>{loading ? 'Logging in...' : 'Login'}</button>
+                <button type="submit" disabled={isLoading} style={styles.btn}>{isLoading ? 'Logging in...' : 'Login'}</button>
 
                 <button type="button" onClick={() => navigate('/signup')} style={styles.lbtn}>Don't have an Account? Signup </button>
 
             </form>
 
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-            {success && <p style={{ color: 'green' }}>{success}</p>}
+            {error && (
+                <p style={{ color: "red" }}>
+                    {error.data?.message || "Login failed"}
+                </p>
+            )}
 
         </div>
     );

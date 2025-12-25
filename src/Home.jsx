@@ -1,67 +1,56 @@
 import { useState, useEffect } from 'react';
 import { LogOut, Plus, Edit2, Trash2, Eye } from 'lucide-react';
 
-import { useDispatch, useSelector } from 'react-redux';
 import {
-  fetchBlogs,
-  createBlog,
-  updateBlog,
-  deleteBlog,
-  openCreateModal,
-  openEditModal,
-  openViewModal,
-  closeAllModals,
-} from './features/blogs/blogSlice';
+  useFetchBlogsQuery,
+  useCreateBlogMutation,
+  useUpdateBlogMutation,
+  useDeleteBlogMutation,
+} from './features/apiSlice';
 
 export default function Home() {
 
-  const dispatch = useDispatch();
-
-  const {
-    list: blogs,
-    loading,
-    selectedBlog,
-    showCreateModal,
-    showEditModal,
-    showViewModal,
-  } = useSelector((state) => state.blogs);
+  const { data: blogs = [], isLoading } = useFetchBlogsQuery();
+  const [createBlog] = useCreateBlogMutation();
+  const [updateBlog] = useUpdateBlogMutation();
+  const [deleteBlog] = useDeleteBlogMutation();
 
   const [formData, setFormData] = useState({ title: '', content: '' });
+  const [selectedBlog, setSelectedBlog] = useState(null);
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
 
-  useEffect(() => {
-    dispatch(fetchBlogs());
-  }, [dispatch]);
-
-  const handleCreateBlog = () => {
-    dispatch(createBlog(formData));
+  const handleCreateBlog = async () => {
+    await createBlog(formData);
     setFormData({ title: '', content: '' });
-    dispatch(closeAllModals());
+    setShowCreateModal(false);
   };
 
-  const handleUpdateBlog = () => {
-    dispatch(
-      updateBlog({
-        id: selectedBlog._id,
-        data: formData,
-      })
-    );
+  const handleUpdateBlog = async () => {
+    await updateBlog({
+      id: selectedBlog._id,
+      data: formData,
+    });
     setFormData({ title: '', content: '' });
-    dispatch(closeAllModals());
+    setShowEditModal(false);
   };
 
-  const handleDeleteBlog = (id) => {
+  const handleDeleteBlog = async (id) => {
     if (!confirm('Are you sure you want to delete this blog?')) return;
-    dispatch(deleteBlog(id));
+    await deleteBlog(id);
   };
 
   const openEdit = (blog) => {
+    setSelectedBlog(blog);
     setFormData({ title: blog.title, content: blog.content });
-    dispatch(openEditModal(blog));
+    setShowEditModal(true);
   };
 
   const openView = (blog) => {
-    dispatch(openViewModal(blog));
+    setSelectedBlog(blog);
+    setShowViewModal(true);
   };
 
   const handleLogout = () => {
@@ -341,7 +330,7 @@ export default function Home() {
           </div>
           <div style={styles.buttonGroup}>
             <button
-              onClick={() => dispatch(openCreateModal())}
+              onClick={() => setShowCreateModal(true)}
               style={{ ...styles.button, ...styles.newBlogButton }}
             >
               <Plus size={20} />
@@ -359,7 +348,7 @@ export default function Home() {
       </header>
 
       <main style={styles.main}>
-        {loading ? (
+        {isLoading ? (
           <div style={styles.loader}>
             <div style={styles.spinner}></div>
           </div>
@@ -420,7 +409,7 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => {
-                    dispatch(closeAllModals());
+                    setShowCreateModal(false);
                     setFormData({ title: '', content: '' });
                   }}
                   style={styles.cancelButton}
@@ -461,9 +450,9 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => {
-                    dispatch(closeAllModals())
+                    setShowEditModal(false);
                     setFormData({ title: '', content: '' });
-              
+
                   }}
                   style={styles.cancelButton}
                 >
@@ -482,7 +471,7 @@ export default function Home() {
             <p style={styles.viewModalContent}>{selectedBlog.content}</p>
             <button
               onClick={() => {
-                dispatch(closeAllModals())
+                setShowViewModal(false);
               }}
               style={styles.closeButton}
             >
